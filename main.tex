@@ -13,6 +13,8 @@
 \usepackage{graphicx}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage{float}
+\usepackage[table]{xcolor}
+
 
 % for python code
 \usepackage{listings}
@@ -57,7 +59,7 @@ Blah Blah Blah
 
 \appendix
 \section{Methods}
-
+\textbf{Aside:}, note that all of the code for the following has been already submitted as part of the Project Check-In, therefore does not need to resubmitted according to the project spec. 
 \subsection{Exploratory Data Analysis}
 
 For our exploratory data analysis (EDA), we began by examining the structure of the Spotify dataset, including the number of observations, feature types, and any missing or duplicated entries. We generate summary statistics for numerical features to understand their ranges, distributions, and potential outliers.
@@ -173,10 +175,54 @@ Finally, we performed 5-fold stratified cross-validation to verify the stability
 \end{figure}
 
 \subsection{KNN, Decision Trees, and Random Forest}
+\textbf{NOTE: i didn't do decision tree / random forest -kevin} \vspace{0.5em}
 
-KNN + DECISION TREE + RANDOM FOREST
+We applied the K-Nearest Neighbors (KNN) classifier to predict whether a song contains explicit content, using the same set of audio and metadata features as in the logistic regression analysis. Because KNN relies on distance computations, we standardized all feature values prior to training to ensure that no single feature dominated the Euclidean distance metric.
 
-% i don't seem to have this check in on my end -kevin
+The model was first trained using \( k = 3 \), which provided a good balance between model flexibility and stability. After fitting the classifier on the training set, we evaluated performance on the validation set. The confusion matrix shown in Figure~\ref{fig:knn_confusion} reveals that the KNN model achieved strong performance on the majority (non-explicit) class, with a high true negative rate of 0.9709. However, the model struggled to correctly identify explicit songs, resulting in a lower true positive rate of 0.2876. This imbalance is expected, as the dataset contains far fewer explicit songs and KNN tends to favor the majority class when class densities differ. 
+
+Despite this, the overall prediction accuracy was high (91.31\%), although this figure alone is misleading due to the strong class imbalance. To better assess the classifier’s discriminative ability, we computed the ROC curve and measured the area under the curve (AUC), shown in Figure~\ref{fig:knn_roc}. The resulting AUC score indicated moderate performance, reflecting that while KNN is effective at identifying non-explicit songs, it is less capable of distinguishing explicit content based solely on the available features.
+
+To evaluate the stability of the model, we conducted 5-fold stratified cross-validation using \( k = 5 \). The resulting accuracy and AUC scores were consistent across folds, indicating that the classifier generalizes reliably. However, cross-validation also confirmed that the low recall on the explicit class is inherent to the dataset’s imbalance rather than an artifact of a particular train–test split.
+
+Table~\ref{tab:knn_cv} summarizes the 5-fold cross-validation accuracy and AUC values for the KNN classifier, demonstrating stable performance across folds.
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Fold} & \textbf{Accuracy} & \textbf{AUC} \\
+\hline
+1 & 0.914 & 0.740 \\
+2 & 0.909 & 0.709 \\
+3 & 0.906 & 0.687 \\
+4 & 0.914 & 0.754 \\
+5 & 0.914 & 0.715 \\
+\hline
+\textbf{Mean} & \textbf{0.912} & \textbf{0.721} \\
+\hline
+\end{tabular}
+\caption{5-fold cross-validation results for the KNN classifier.}
+\label{tab:knn_cv}
+\end{table}
+
+Overall, KNN provided reasonable baseline performance but was limited in detecting minority-class instances. This suggests that distance-based methods may not be ideal for this task unless additional techniques—such as oversampling, synthetic data generation, or alternative distance metrics—are introduced.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=9cm]{pic/knn_confusion_matrix.png}
+    \caption{Confusion matrix for the KNN classifier ($k=3$) on the validation set.}
+    \label{fig:knn_confusion}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=9cm]{pic/knn_roc_curve.png}
+    \caption{ROC curve for the KNN classifier on the validation set. The dashed line represents random guessing.}
+    \label{fig:knn_roc}
+\end{figure}
+
 
 \subsection{PCA and Clustering}
 % working on this rn -kevin
@@ -213,11 +259,176 @@ To visualize the clusters in two dimensions, we applied PCA to the standardized 
 
 \subsection{Neural Network Experiments}
 
-NEURAL NETWORKS
+To capture nonlinear relationships among audio features and generate meaningful low-dimensional representations of songs, we implemented a neural network autoencoder. The autoencoder learns a compressed embedding of each track by training the network to reconstruct the original input from a reduced latent space. This approach is particularly valuable for recommendation systems, as songs that produce similar embeddings tend to share similar musical characteristics across multiple dimensions.
+
+Before training, we standardized all numerical features in the dataset to ensure consistent scaling across input dimensions. The autoencoder architecture consisted of an encoder with two fully connected layers that reduced the input vector to a 12-dimensional embedding, followed by a symmetric decoder responsible for reconstructing the original feature vector. ReLU activations were used throughout the network, and training was performed for 40 epochs using the Adam optimizer with a learning rate of 0.001 and mean squared error (MSE) as the loss function.
+
+Figure~\ref{fig:auto_loss} shows the error-versus-epoch curve. The steady decline in reconstruction loss, decreasing from approximately 0.10 in the first epoch to below 0.006 by epoch 40, demonstrates stable convergence and effective learning. Table~\ref{tab:autoencoder_metrics} summarizes the reconstructed performance metrics, including MSE, MAE, RMSE, and the R\textsuperscript{2} score. These metrics indicate that the autoencoder achieved exceptionally high reconstruction fidelity, with an R\textsuperscript{2} value of 0.9944 and a very low reconstruction error across all measures.
+
+To provide further detail on the autoencoder’s learning progression, Table~\ref{tab:autoencoder_loss_color} reports the epoch-by-epoch training loss values in a color-coded side-by-side format (Epochs 1–20 and Epochs 21–40). The progressive lightening of cell colors visually reinforces the monotonic decrease in training loss and highlights the network’s consistent improvement throughout training.
+
+After training, we used the learned embeddings to construct a similarity-based recommendation system. For any selected track, we computed its latent embedding and measured cosine similarity against all other embeddings to identify the most similar songs. Because the embedding space reflects nonlinear relationships among multiple audio features, this method naturally identifies songs with similar musical structure, rather than relying on single-feature comparisons.
+
+Overall, the autoencoder proved to be an effective tool for extracting compact, information-rich song representations. These latent embeddings provide a strong foundation for music recommendation and complement the insights gained from earlier regression, classification, and clustering analyses.
+
+
+\begin{table}[H]
+\centering
+
+% Define a custom light-blue color scale
+\definecolor{lightblue}{RGB}{224,243,255}
+
+% Helper command to color cells based on loss magnitude
+\newcommand{\losscolor}[1]{%
+    \pgfmathparse{min(1, (#1/0.10347))}%
+    \edef\percent{\pgfmathresult}%
+    \cellcolor{blue!\percent!white}{#1}%
+}
+
+% Left Table: Epochs 1–20
+\begin{minipage}{0.45\linewidth}
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\rowcolor{lightgray}
+\textbf{Epoch} & \textbf{Loss} \\
+\hline
+1  & \cellcolor{blue!100!white}{0.10347} \\
+2  & \cellcolor{blue!20!white}{0.02057} \\
+3  & \cellcolor{blue!14!white}{0.01472} \\
+4  & \cellcolor{blue!11!white}{0.01218} \\
+5  & \cellcolor{blue!10!white}{0.01088} \\
+6  & \cellcolor{blue!9!white}{0.01016} \\
+7  & \cellcolor{blue!9!white}{0.00970} \\
+8  & \cellcolor{blue!8!white}{0.00913} \\
+9  & \cellcolor{blue!8!white}{0.00871} \\
+10 & \cellcolor{blue!8!white}{0.00827} \\
+11 & \cellcolor{blue!7!white}{0.00795} \\
+12 & \cellcolor{blue!7!white}{0.00766} \\
+13 & \cellcolor{blue!7!white}{0.00735} \\
+14 & \cellcolor{blue!7!white}{0.00717} \\
+15 & \cellcolor{blue!7!white}{0.00705} \\
+16 & \cellcolor{blue!7!white}{0.00709} \\
+17 & \cellcolor{blue!7!white}{0.00681} \\
+18 & \cellcolor{blue!7!white}{0.00675} \\
+19 & \cellcolor{blue!7!white}{0.00672} \\
+20 & \cellcolor{blue!6!white}{0.00653} \\
+\hline
+\end{tabular}
+\end{minipage}
+\hfill
+% Right Table: Epochs 21–40
+\begin{minipage}{0.45\linewidth}
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\rowcolor{lightgray}
+\textbf{Epoch} & \textbf{Loss} \\
+\hline
+21 & \cellcolor{blue!6!white}{0.00651} \\
+22 & \cellcolor{blue!6!white}{0.00649} \\
+23 & \cellcolor{blue!6!white}{0.00639} \\
+24 & \cellcolor{blue!6!white}{0.00630} \\
+25 & \cellcolor{blue!6!white}{0.00626} \\
+26 & \cellcolor{blue!6!white}{0.00623} \\
+27 & \cellcolor{blue!6!white}{0.00613} \\
+28 & \cellcolor{blue!6!white}{0.00611} \\
+29 & \cellcolor{blue!6!white}{0.00611} \\
+30 & \cellcolor{blue!6!white}{0.00600} \\
+31 & \cellcolor{blue!6!white}{0.00593} \\
+32 & \cellcolor{blue!6!white}{0.00585} \\
+33 & \cellcolor{blue!6!white}{0.00582} \\
+34 & \cellcolor{blue!6!white}{0.00575} \\
+35 & \cellcolor{blue!5!white}{0.00567} \\
+36 & \cellcolor{blue!6!white}{0.00574} \\
+37 & \cellcolor{blue!5!white}{0.00555} \\
+38 & \cellcolor{blue!5!white}{0.00550} \\
+39 & \cellcolor{blue!5!white}{0.00549} \\
+40 & \cellcolor{blue!5!white}{0.00545} \\
+\hline
+\end{tabular}
+\end{minipage}
+
+\caption{Side-by-side comparison of autoencoder training loss across 40 epochs. Darker shades represent higher loss values and lighter shades represent lower loss values.}
+\label{tab:autoencoder_loss_color}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MSE  & 0.005568 \\
+MAE  & 0.041211 \\
+RMSE & 0.074618 \\
+R\textsuperscript{2} & 0.994432 \\
+\hline
+\end{tabular}
+\caption{Autoencoder reconstruction performance metrics.}
+\label{tab:autoencoder_metrics}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=9cm]{pic/autoencoder_loss.png}
+    \caption{Training loss curve for the autoencoder over 40 epochs.}
+    \label{fig:auto_loss}
+\end{figure}
+
 
 \subsection{Hyperparameter Tuning}
 
-HYPERPARAMETER TUNING
+Throughout the project, we performed hyperparameter tuning across several models in order to improve performance, ensure model stability, and validate that our chosen configurations generalized well beyond a single train–test split. Each algorithm required different hyperparameters to be explored, and the decisions were guided by empirical results, diagnostic plots, and cross-validation procedures.
+
+\subsubsection*{Clustering (K-Means)}
+One of the most important hyperparameters in K-Means clustering is the number of clusters \( k \). To determine an appropriate value, we tested values of \( k \) ranging from 2 to 10 and used two evaluation methods:
+\begin{itemize}
+    \item \textbf{Elbow Method:} We plotted distortion (within-cluster sum of squares) across different values of \( k \) and observed where the curve began to flatten.
+    \item \textbf{Silhouette Scores:} We computed silhouette coefficients for each \( k \) to measure cluster cohesion and separation.
+\end{itemize}
+Both diagnostics indicated that \( k = 6 \) provided a strong balance between separation quality and cluster compactness, and this value was selected for the final clustering model.
+
+\subsubsection*{Linear and Regularized Regression}
+For linear regression, the primary goal was to analyze which features contributed significantly to predicting track energy. No regularization was applied in the standard model, allowing the coefficients to reflect the natural linear relationships in the dataset.
+
+We then tuned the Ridge regression model by adjusting the regularization strength parameter \( \alpha \). Several values were tested, and \( \alpha = 2.5 \) produced the best tradeoff between reducing coefficient variance and maintaining predictive performance. Ridge demonstrated only modest improvements over standard linear regression, suggesting low multicollinearity among features.
+
+\subsubsection*{Logistic Regression}
+The logistic regression model required tuning primarily due to the strong class imbalance between explicit and non-explicit tracks. We adjusted the following hyperparameters:
+
+\begin{itemize}
+    \item \textbf{Class Weights:} To increase sensitivity to explicit tracks, we applied class weights of \texttt{\{0:1, 1:8\}}, substantially improving recall for the minority class.
+    \item \textbf{Maximum Iterations:} We increased \texttt{max\_iter} to 500 to ensure convergence with weighted training.
+\end{itemize}
+
+After tuning, the logistic regression model achieved stable AUC and accuracy metrics, confirmed through 5-fold stratified cross-validation.
+
+\subsubsection*{K-Nearest Neighbors}
+KNN performance depends heavily on the choice of \( k \). We initially trained the model with \( k = 3 \), which provided a good baseline. To evaluate model stability, we ran stratified 5-fold cross-validation with \( k = 5 \), observing consistent accuracy and AUC values across folds. This indicated that the classifier was robust to moderate changes in \( k \), although limited by class imbalance inherent in the dataset.
+
+\subsubsection*{Neural Network Autoencoder}
+The autoencoder required tuning of several hyperparameters, including:
+
+\begin{itemize}
+    \item \textbf{Embedding Dimension:} We selected a 12-dimensional latent space to balance compression and reconstruction quality.
+    \item \textbf{Hidden Layer Widths:} The encoder and decoder each used a 64-unit hidden layer based on preliminary experiments.
+    \item \textbf{Activation Functions:} ReLU was chosen for its stability and suitability for continuous-valued data.
+    \item \textbf{Learning Rate:} A learning rate of 0.001 with the Adam optimizer produced smooth convergence.
+    \item \textbf{Epochs:} Training for 40 epochs allowed the loss to stabilize without overfitting, as seen in the downward trend in Table~3 and Figure~\ref{fig:auto_loss}.
+    \item \textbf{Batch Size:} A batch size of 64 balanced learning stability and computational efficiency.
+\end{itemize}
+
+The combination of these tuned hyperparameters yielded a highly accurate autoencoder with excellent reconstruction performance, as summarized in Table~2.
+
+\subsubsection*{Summary}
+Across all models, hyperparameter tuning played a key role in improving predictive accuracy, stability, and interpretability. By systematically adjusting cluster sizes, regularization strengths, class weights, nearest-neighbor counts, and neural network architecture components, we ensured that each modeling approach was optimized for the characteristics of the Spotify dataset.
+
+
+
+
 
 % \bibliographystyle{alpha}
  % \bibliography{sample}
