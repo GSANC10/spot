@@ -102,6 +102,30 @@ pip install torch torchvision torchaudio
 pip install pandas numpy scikit-learn matplotlib
 ```
 
+### How to Run `KNN_RF_implementation.ipynb`
+This notebook contains a **K-Nearest-Neighbors and Random Forest combined model** that finds songs with similar features using KNN, then combines these results with RF to recommend similar songs based on popularity.
+
+### 1. Environment Setup
+
+You may run this notebook in **Google Colab** (recommended) or **locally**.
+
+#### Option A: Google Colab (Recommended)
+
+1. Upload `KNN_RF_implementation.ipynb` to Google Colab  
+2. Set the runtime to **Python 3**  
+3. Upload `dataset.csv` to the Colab file system  
+
+No additional installation is required.
+
+---
+
+#### Option B: Local Setup
+
+Ensure you are using **Python 3.9 or later**. Install the required dependencies:
+
+```bash
+pip install pandas scikit-learn
+```
 
 
 
@@ -109,6 +133,7 @@ pip install pandas numpy scikit-learn matplotlib
 For reference, this link shows how to download a notebook as a PDF
 
 https://stackoverflow.com/questions/52588552/google-co-laboratory-notebook-pdf-download
+
 
 
 
