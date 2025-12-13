@@ -67,7 +67,7 @@ TODO
 2. Click **Files and versions**  
 3. Download the CSV file containing the Spotify track data  
 4. Rename the downloaded file to:
-5. Place `dataset.csv` in the **same directory** as `ExampleNotebookOfChoice.ipynb`
+5. Place `dataset.csv` in the **same directory** as `WorkingNotebookOfChoice.ipynb`
 
 The notebook expects the dataset to be named **exactly** `dataset.csv`.
 
@@ -109,5 +109,6 @@ pip install pandas numpy scikit-learn matplotlib
 For reference, this link shows how to download a notebook as a PDF
 
 https://stackoverflow.com/questions/52588552/google-co-laboratory-notebook-pdf-download
+
 
 
