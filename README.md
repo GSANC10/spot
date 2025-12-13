@@ -101,6 +101,7 @@ Ensure you are using **Python 3.9 or later**. Install the required dependencies:
 pip install torch torchvision torchaudio
 pip install pandas numpy scikit-learn matplotlib
 ```
+---
 
 ### How to Run `KNN_RF_implementation.ipynb`
 This notebook contains a **K-Nearest-Neighbors and Random Forest combined model** that finds songs with similar features using KNN, then combines these results with RF to recommend similar songs based on popularity.
@@ -133,6 +134,7 @@ pip install pandas scikit-learn
 For reference, this link shows how to download a notebook as a PDF
 
 https://stackoverflow.com/questions/52588552/google-co-laboratory-notebook-pdf-download
+
 
 
 
